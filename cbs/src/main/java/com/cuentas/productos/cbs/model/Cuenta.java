@@ -21,8 +21,9 @@ public class Cuenta {
     @Column(name = "clienteid", nullable = false)
     private Integer clienteId;
 
-    @ManyToOne
-    @JoinColumn(name = "tipocuentaid", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipocuentaid", nullable = true)
+    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
     private TipoCuenta tipoCuenta;
 
     @Column(name = "sucursalidapertura", nullable = false)
@@ -49,8 +50,10 @@ public class Cuenta {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
         Cuenta cuenta = (Cuenta) o;
         return id != null && id.equals(cuenta.id);
