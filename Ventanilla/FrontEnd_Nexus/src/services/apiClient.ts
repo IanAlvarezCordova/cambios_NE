@@ -1,7 +1,8 @@
 // src/services/apiClient.ts
 import { useVentanillaStore } from "@/store/useVentanillaStore";
 
-const BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = '/api/ventanilla';
+// const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const apiClient = async <T>(endpoint: string, options: RequestInit = {}): Promise<T> => {
   const { token, logout } = useVentanillaStore.getState();
