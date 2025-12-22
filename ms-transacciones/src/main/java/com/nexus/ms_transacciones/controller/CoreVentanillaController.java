@@ -108,6 +108,9 @@ public class CoreVentanillaController {
             log.info(">>> Cliente encontrado: {} con {} cuentas", nombres, cuentasList.size());
             return ResponseEntity.ok(resumen);
 
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error(">>> Error cliente HTTP: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return ResponseEntity.status(e.getStatusCode()).body(null);
         } catch (Exception e) {
             log.error("Error buscando cliente: {}", e.getMessage());
             throw new RuntimeException(e.getMessage());

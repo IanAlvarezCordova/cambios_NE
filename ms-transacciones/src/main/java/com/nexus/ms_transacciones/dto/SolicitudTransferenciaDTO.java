@@ -51,6 +51,6 @@ public class SolicitudTransferenciaDTO {
             // Si no viene código de banco, asumimos que es interna (o verificamos por ID)
             return bancoDestinoId == null || bancoDestinoId == 2;
         }
-        return "NEXUS".equalsIgnoreCase(bancoDestinoCodigo);
+        return "NEXUS".equalsIgnoreCase(bancoDestinoCodigo) || "ECUASOL".equalsIgnoreCase(bancoDestinoCodigo);
     }
 }
