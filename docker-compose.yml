@@ -121,7 +121,7 @@ services:
   front-ventanilla:
     build: ./Ventanilla/FrontEnd_Nexus
     container_name: front-ventanilla
-    ports: [ "81:80" ]
+    ports: [ "8090:80" ]
     networks: [ nexus-net ]
 
 networks:
