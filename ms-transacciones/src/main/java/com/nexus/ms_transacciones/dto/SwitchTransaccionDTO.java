@@ -37,11 +37,16 @@ public class SwitchTransaccionDTO {
     @Schema(description = "Valor a transferir", example = "150.75")
     private BigDecimal monto;
 
+    @JsonProperty("Moneda")
+    @Schema(description = "Moneda de la transacción", example = "USD")
+    private String moneda;
+
     @JsonProperty("Mensaje")
     @Schema(description = "Descripción técnica o motivo", example = "Pago de servicios")
     private String mensaje;
 
     @JsonProperty("EstadoActual")
-    @Schema(description = "Estado dentro del Switch", example = "PENDING", allowableValues = {"PENDING", "COMPLETED", "FAILED"})
+    @Schema(description = "Estado dentro del Switch", example = "PENDING", allowableValues = { "PENDING", "COMPLETED",
+            "FAILED" })
     private String estadoActual;
 }

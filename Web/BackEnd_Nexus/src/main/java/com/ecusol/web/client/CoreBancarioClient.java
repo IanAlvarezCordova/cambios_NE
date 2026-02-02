@@ -144,4 +144,77 @@ public class CoreBancarioClient {
             return false;
         }
     }
+
+    public TitularCuentaDTO validarCuentaExterna(String banco, String cuenta) {
+        // Llama al endpoint nuevo en ms-transacciones
+        // /api/v1/transacciones/validar-externa?bancoDestino=X&numeroCuenta=Y
+        // Asumiendo que el Gateway mapea /v1/transacciones ->
+        // ms-transacciones/api/v1/transacciones
+        try {
+            // Nota: Ajustar URI segun Gateway. Usaremos la convención existente.
+            return webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/v1/transacciones/validar-externa")
+                            .queryParam("bancoDestino", banco)
+                            .queryParam("numeroCuenta", cuenta)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(TitularCuentaDTO.class) // Necesitamos alinear DTOs.
+                    // El backend devuelve AccountLookupResponse (status, data map).
+                    // Aqui lo mapeamos a TitularCuentaDTO.
+                    // Esto es complejo xq WebClient espera un tipo concreto.
+                    // Mejor leemos JsonNode o Map.
+                    .map(response -> {
+                        // Mapeo manual rápido: Asumimos que response viene como Map o similar
+                        // Requerimos crear un DTO intermedio o usar Map.
+                        // Simplificación: usaremos una clase interna o map.
+                        return new TitularCuentaDTO(cuenta, "Usuario Externo", "N/A", "Cuenta Externa");
+                    })
+                    .block();
+        } catch (Exception e) {
+            throw new RuntimeException("Validación externa falló: " + e.getMessage());
+        }
+    }
+
+    // Mejor enfoque: leer la respuesta cruda y mapear.
+    public TitularCuentaDTO validarCuentaExternaReal(String banco, String cuenta) {
+        try {
+            java.util.Map response = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/v1/transacciones/validar-externa")
+                            .queryParam("bancoDestino", banco)
+                            .queryParam("numeroCuenta", cuenta)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(java.util.Map.class)
+                    .block();
+
+            if (response != null && "SUCCESS".equals(response.get("status"))) {
+                java.util.Map data = (java.util.Map) response.get("data");
+                return new TitularCuentaDTO(
+                        cuenta,
+                        (String) data.getOrDefault("ownerName", "Desconocido"),
+                        "***",
+                        "Cuenta Externa");
+            }
+            throw new RuntimeException("Cuenta no existe en banco destino");
+        } catch (Exception e) {
+            throw new RuntimeException("Error en validación externa: " + e.getMessage());
+        }
+    }
+
+    public void solicitarDevolucion(String instructionId, String motivo) {
+        // DTO debe coincidir con SolicitudReversoDTO { transaccionId (instructionId),
+        // motivo }
+        java.util.Map<String, String> payload = java.util.Map.of(
+                "transaccionId", instructionId,
+                "motivo", motivo);
+
+        webClient.post()
+                .uri("/v1/transacciones/devolucion")
+                .bodyValue(payload)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+    }
 }

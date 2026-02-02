@@ -55,6 +55,14 @@ public class BancaWebController {
         return ResponseEntity.ok("Cuenta creada exitosamente");
     }
 
+    @PostMapping("/solicitar-devolucion")
+    public ResponseEntity<String> solicitarDevolucion(@RequestBody java.util.Map<String, String> payload) {
+        String instructionId = payload.get("instructionId");
+        String motivo = payload.get("motivo");
+        bankingService.solicitarDevolucion(instructionId, motivo);
+        return ResponseEntity.ok("Devolución solicitada exitosamente");
+    }
+
     // --- CORRECCIÓN ---
     @GetMapping("/validar-destinatario/{numero}")
     public DestinatarioDTO validar(@PathVariable String numero, @RequestParam(required = false) String banco) {

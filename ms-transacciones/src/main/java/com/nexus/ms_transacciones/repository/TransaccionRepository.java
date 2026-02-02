@@ -9,6 +9,10 @@ import java.util.List;
 public interface TransaccionRepository extends JpaRepository<Transaccion, Integer> {
     boolean existsByInstructionId(String instructionId);
 
+    java.util.Optional<Transaccion> findByInstructionId(String instructionId);
+
+    java.util.Optional<Transaccion> findByReferencia(String referencia);
+
     List<Transaccion> findAllByCuentaOrigenOrCuentaDestinoOrderByFechaEjecucionDesc(String cuentaOrigen,
             String cuentaDestino);
 }

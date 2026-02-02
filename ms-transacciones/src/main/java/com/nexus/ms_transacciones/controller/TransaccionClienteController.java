@@ -36,6 +36,22 @@ public class TransaccionClienteController {
         return ResponseEntity.ok(respuesta);
     }
 
+    @PostMapping("/devolucion")
+    @Operation(summary = "Solicitar devolución (Reverso) de una transacción recibida")
+    public ResponseEntity<java.util.Map<String, String>> solicitarDevolucion(
+            @Valid @RequestBody com.nexus.ms_transacciones.dto.SolicitudReversoDTO request) {
+        service.solicitarReverso(request);
+        return ResponseEntity.ok(java.util.Map.of("message", "Solicitud de devolución procesada exitosamente"));
+    }
+
+    @GetMapping("/validar-externa")
+    @Operation(summary = "Validar cuenta de otro banco via Switch")
+    public ResponseEntity<com.nexus.ms_transacciones.dto.AccountLookupResponse> validarCuentaExterna(
+            @RequestParam String bancoDestino,
+            @RequestParam String numeroCuenta) {
+        return ResponseEntity.ok(service.validarCuentaExterna(bancoDestino, numeroCuenta));
+    }
+
     @GetMapping("/cuenta/{numeroCuenta}")
     @Operation(summary = "Obtener movimientos por número de cuenta")
     public ResponseEntity<List<MovimientoDTO>> obtenerMovimientos(@PathVariable String numeroCuenta) {

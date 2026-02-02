@@ -87,4 +87,51 @@ public class SwitchClient {
     public String getBancoCodigo() {
         return bancoCodigo;
     }
+
+    /**
+     * Envía una solicitud de reverso (devolución) al Switch.
+     * Endpoint: POST /api/v2/switch/transfers/return
+     */
+    public void enviarReverso(com.nexus.ms_transacciones.dto.SwitchReturnRequest request) {
+        // NOTA: La URL en la documentación dice /api/v2/switch/transfers/return
+        // Verificamos si es relativa a switchUrl
+        String url = switchUrl + "/api/v2/switch/transfers/return";
+        log.info("🔙 Enviando reverso al Switch para ID {}: {}", request.getOriginalInstructionId(), url);
+
+        try {
+            // El Switch devuelve un 200 OK si se acepta, o error.
+            // Asumimos Void.class o podríamos parsear respuesta si fuera necesario.
+            restTemplate.postForEntity(url, request, String.class);
+            log.info("✅ Reverso enviado exitosamente");
+        } catch (Exception e) {
+            log.error("❌ Error enviando reverso: {}", e.getMessage());
+            throw new RuntimeException("Error enviando reverso al Switch: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Valida una cuenta en un banco externo a través del Switch.
+     * Endpoint: GET /api/v2/accounts/lookup
+     */
+    public com.nexus.ms_transacciones.dto.AccountLookupResponse validarCuentaExterna(String targetBankId,
+            String targetAccountNumber) {
+        String url = switchUrl + "/api/v2/accounts/lookup?targetBankId=" + targetBankId + "&targetAccountNumber="
+                + targetAccountNumber;
+        log.info("🔍 Validando cuenta externa en Switch: {}", url);
+
+        try {
+            ResponseEntity<com.nexus.ms_transacciones.dto.AccountLookupResponse> response = restTemplate
+                    .getForEntity(url, com.nexus.ms_transacciones.dto.AccountLookupResponse.class);
+
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("❌ Error validando cuenta externa: {}", e.getMessage());
+            // Retornamos un objeto indicando fallo en lugar de explotar, o lanzamos
+            // excepción según preferencia
+            return com.nexus.ms_transacciones.dto.AccountLookupResponse.builder()
+                    .status("FAILED")
+                    .data(java.util.Map.of("message", "Error de comunicación con Switch"))
+                    .build();
+        }
+    }
 }

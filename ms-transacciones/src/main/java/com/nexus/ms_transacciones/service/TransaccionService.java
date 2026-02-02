@@ -9,4 +9,13 @@ public interface TransaccionService {
     void procesarPagoEntrante(SwitchTransaccionDTO dto);
 
     List<MovimientoDTO> obtenerMovimientosPorCuenta(String numeroCuenta);
+
+    // Nuevos métodos para validación y reverso
+    AccountLookupResponse validarCuentaLocal(String accountId);
+
+    AccountLookupResponse validarCuentaExterna(String targetBankId, String targetAccountNumber);
+
+    void solicitarReverso(SolicitudReversoDTO request);
+
+    void procesarReversoEntrante(java.util.Map<String, Object> payload);
 }

@@ -57,4 +57,17 @@ public class CuentaClient {
         log.warn("SAGA COMPENSANDO: Revirtiendo débito para cuenta {}", cuenta);
         acreditar(cuenta, monto);
     }
+
+    public com.nexus.ms_transacciones.dto.CuentaDTO buscarPorNumero(String numeroCuenta) {
+        try {
+            String url = urlCompleta + "/por-numero/" + numeroCuenta;
+            log.info(">>> Buscando cuenta local en: {}", url);
+            return restTemplate.getForObject(url, com.nexus.ms_transacciones.dto.CuentaDTO.class);
+        } catch (HttpClientErrorException.NotFound e) {
+            return null;
+        } catch (Exception e) {
+            log.error(">>> ERROR buscando cuenta local {}: {}", numeroCuenta, e.getMessage());
+            throw new RuntimeException("Error consultando servicio de cuentas");
+        }
+    }
 }

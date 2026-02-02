@@ -153,4 +153,139 @@ public class TransaccionServiceImpl implements TransaccionService {
             return dto;
         }).toList();
     }
+
+    @Override
+    public AccountLookupResponse validarCuentaLocal(String accountId) {
+        log.info("🔍 Validando cuenta local: {}", accountId);
+        CuentaDTO cuenta = cuentaClient.buscarPorNumero(accountId);
+
+        if (cuenta != null && "ACTIVA".equalsIgnoreCase(cuenta.getEstado())) {
+            // Devolvemos SUCCESS con data
+            // Asumimos que clienteNombre viene en DTO o lo ponemos genérico si falta
+            String owner = cuenta.getClienteNombre() != null ? cuenta.getClienteNombre() : "CLIENTE NEXUS";
+            return AccountLookupResponse.builder()
+                    .status("SUCCESS")
+                    .data(java.util.Map.of(
+                            "exists", true,
+                            "ownerName", owner,
+                            "currency", "USD"))
+                    .build();
+        }
+
+        return AccountLookupResponse.builder()
+                .status("FAILED")
+                .data(java.util.Map.of("exists", false))
+                .build();
+    }
+
+    @Override
+    public AccountLookupResponse validarCuentaExterna(String targetBankId, String targetAccountNumber) {
+        return switchClient.validarCuentaExterna(targetBankId, targetAccountNumber);
+    }
+
+    @Override
+    @Transactional
+    public void solicitarReverso(SolicitudReversoDTO request) {
+        log.info(">>> Iniciando solicitud de reverso: {}", request);
+
+        // 1. Buscar la transacción original (opcional, para sacar montos/cuentas)
+        // Si request.instructionId es la referencia local, buscamos por referencia
+        Transaccion txOriginal = repository.findByInstructionId(request.getInstructionId())
+                .or(() -> repository.findByReferencia(request.getInstructionId()))
+                .orElseThrow(() -> new RuntimeException(
+                        "Transacción original no encontrada: " + request.getInstructionId()));
+
+        // 2. Debitar al cliente local (Reverso de un abono recibido previamente? NO)
+        // "Devoluciones Salientes": Nosotros recibimos dinero (Abono) y ahora lo
+        // devolvemos (Debito).
+        // Verificar que la tx original fue un CREDITO a nuestro cliente (Receptor).
+        // Si fuimos CREDITO, entonces 'CuentaDestino' es nuestro cliente.
+
+        if (!"COMPLETED".equals(txOriginal.getEstado())) {
+            throw new RuntimeException("Solo se pueden devolver transacciones completadas");
+        }
+
+        // Debitar a la cuenta destino original (nuestro cliente)
+        log.info("Debitando cuenta local {} para devolución", txOriginal.getCuentaDestino());
+        cuentaClient.debitar(txOriginal.getCuentaDestino(), txOriginal.getMonto());
+
+        // 3. Enviar al Switch
+        com.nexus.ms_transacciones.dto.SwitchReturnRequest switchRequest = com.nexus.ms_transacciones.dto.SwitchReturnRequest
+                .builder()
+                .originalInstructionId(txOriginal.getInstructionId())
+                .reasonCode(request.getReasonCode())
+                .returnReason(request.getDescription())
+                .returnAmount(txOriginal.getMonto())
+                .initiatingBank(switchClient.getBancoCodigo())
+                .build();
+
+        switchClient.enviarReverso(switchRequest);
+
+        // 4. Actualizar estado transacción original a RETURNED
+        txOriginal.setEstado("RETURNED");
+        repository.save(txOriginal);
+
+        // 5. Crear nueva transacción de reverso?
+        // Generar registro de reverso
+        Transaccion txReverso = new Transaccion();
+        txReverso.setInstructionId("RET-" + UUID.randomUUID().toString());
+        txReverso.setReferencia("RET-" + txOriginal.getReferencia());
+        txReverso.setCuentaOrigen(txOriginal.getCuentaDestino()); // Origen es quien devuelve
+        txReverso.setCuentaDestino(txOriginal.getCuentaOrigen()); // Destino es quien recibe (externo)
+        txReverso.setMonto(txOriginal.getMonto());
+        txReverso.setDescripcion("Devolución: " + request.getDescription());
+        txReverso.setEstado("COMPLETED");
+        txReverso.setRolTransaccion("DEBITO"); // Sale dinero
+        txReverso.setFechaEjecucion(LocalDateTime.now());
+        repository.save(txReverso);
+    }
+
+    @Override
+    @Transactional
+    public void procesarReversoEntrante(java.util.Map<String, Object> payload) {
+        // Switch envía pacs.004 con originalInstructionId
+        // Debemos buscar la tx original (que fue un DEBITO/ENVIO nuestro) y ACREDITAR
+        // al cliente.
+
+        try {
+            java.util.Map<String, Object> txInfo = (java.util.Map<String, Object>) payload.get("transactionInfo");
+            String originalId = (String) txInfo.get("originalInstructionId");
+
+            log.info(">>> Procesando reverso entrante para ID: {}", originalId);
+
+            Transaccion txOriginal = repository.findByInstructionId(originalId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Transacción original no encontrada para reverso: " + originalId));
+
+            // Verificar idempotencia del reverso?
+            if ("RETURNED".equals(txOriginal.getEstado())) {
+                log.warn("Transacción ya fue reversada: {}", originalId);
+                return;
+            }
+
+            // Acreditar a la cuenta origen original (nuestro cliente que envió el dinero)
+            log.info("Acreditando devolucion a cuenta local {}", txOriginal.getCuentaOrigen());
+            cuentaClient.acreditar(txOriginal.getCuentaOrigen(), txOriginal.getMonto());
+
+            txOriginal.setEstado("RETURNED");
+            repository.save(txOriginal);
+
+            // Registro del reverso
+            Transaccion txReverso = new Transaccion();
+            txReverso.setInstructionId("INC-RET-" + UUID.randomUUID().toString());
+            txReverso.setReferencia("RET-" + txOriginal.getReferencia());
+            txReverso.setCuentaOrigen(txOriginal.getCuentaDestino()); // Externo
+            txReverso.setCuentaDestino(txOriginal.getCuentaOrigen()); // Local
+            txReverso.setMonto(txOriginal.getMonto());
+            txReverso.setDescripcion("Devolución recibida del banco destino");
+            txReverso.setEstado("COMPLETED");
+            txReverso.setRolTransaccion("CREDITO"); // Entra dinero
+            txReverso.setFechaEjecucion(LocalDateTime.now());
+            repository.save(txReverso);
+
+        } catch (Exception e) {
+            log.error("Error procesando reverso entrante: {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
 }

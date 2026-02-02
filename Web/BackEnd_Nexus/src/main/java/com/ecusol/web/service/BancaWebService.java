@@ -61,9 +61,14 @@ public class BancaWebService {
         boolean esInterno = "ECUASOL".equalsIgnoreCase(banco) || "NEXUS".equalsIgnoreCase(banco);
 
         if (!esInterno) {
-            // Para interbancarios, no podemos validar en nuestro CORE
-            // Retornamos un titular genérico
-            return new TitularCuentaDTO(numeroCuenta, "Cuenta Interbancaria", "***", "Cuenta Externa");
+            // Lógica nueva: Validar contra el Switch via CoreBancarioClient
+            try {
+                // Usamos validación real
+                return coreClient.validarCuentaExternaReal(banco, numeroCuenta);
+            } catch (Exception e) {
+                // Fallback o re-throw
+                throw new RuntimeException("Error validando cuenta externa: " + e.getMessage());
+            }
         }
 
         try {
@@ -71,6 +76,10 @@ public class BancaWebService {
         } catch (Exception e) {
             throw new RuntimeException("Cuenta no existe");
         }
+    }
+
+    public void solicitarDevolucion(String instructionId, String motivo) {
+        coreClient.solicitarDevolucion(instructionId, motivo);
     }
 
     public void solicitarCuenta(Integer clienteIdCore, Integer tipoCuentaId) {

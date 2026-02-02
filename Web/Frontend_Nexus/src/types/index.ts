@@ -17,13 +17,15 @@ export interface MovimientoDTO {
   monto: number;
   saldoNuevo: number;
   descripcion: string;
+  transaccionId?: string;
+  referencia?: string;
 }
 
 export interface DestinatarioDTO {
   numeroCuenta: string;
   nombreTitular: string;
   cedulaParcial: string;
-  tipoCuenta?: string; 
+  tipoCuenta?: string;
 }
 
 export interface TransferenciaRequest {
