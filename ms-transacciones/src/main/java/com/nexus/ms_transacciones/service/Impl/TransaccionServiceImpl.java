@@ -184,17 +184,29 @@ public class TransaccionServiceImpl implements TransaccionService {
     public AccountLookupResponse validarCuentaExterna(String targetBankId, String targetAccountNumber) {
         // CORRECCIÓN: Mapear nombres de bancos a códigos del Switch
         String bankCode = targetBankId;
-        if ("ARCBANK".equalsIgnoreCase(targetBankId)) {
+        if ("ARCBANK".equalsIgnoreCase(targetBankId) || "AR".equalsIgnoreCase(targetBankId)) {
             bankCode = "AR";
-        } else if ("BANTEC".equalsIgnoreCase(targetBankId)) {
+        } else if ("BANTEC".equalsIgnoreCase(targetBankId) || "BA".equalsIgnoreCase(targetBankId)) {
             bankCode = "BA";
-        } else if ("ECUSOL".equalsIgnoreCase(targetBankId) || "ECUSOL_BK".equalsIgnoreCase(targetBankId)) {
+        } else if ("ECUSOL".equalsIgnoreCase(targetBankId) || "ECUSOL_BK".equalsIgnoreCase(targetBankId)
+                || "EC".equalsIgnoreCase(targetBankId)) {
             bankCode = "EC";
-        } else if ("NEXUS".equalsIgnoreCase(targetBankId) || "NEXUS_BK".equalsIgnoreCase(targetBankId)) {
+        } else if ("NEXUS".equalsIgnoreCase(targetBankId) || "NEXUS_BK".equalsIgnoreCase(targetBankId)
+                || "NE".equalsIgnoreCase(targetBankId)) {
             bankCode = "NE";
         }
 
-        return switchClient.validarCuentaExterna(bankCode, targetAccountNumber);
+        // Construir Request
+        AccountLookupRequest request = AccountLookupRequest.builder()
+                .targetBankId(bankCode)
+                .targetAccountNumber(targetAccountNumber)
+                .header(AccountLookupRequest.Header.builder()
+                        .originatingBankId(switchClient.getBancoCodigo())
+                        .timestamp(LocalDateTime.now())
+                        .build())
+                .build();
+
+        return switchClient.validarCuenta(request);
     }
 
     @Override

@@ -113,31 +113,41 @@ public class SwitchClient {
      * Valida una cuenta en un banco externo a través del Switch.
      * Endpoint: GET /api/v2/accounts/lookup
      */
-    public com.nexus.ms_transacciones.dto.AccountLookupResponse validarCuentaExterna(String targetBankId,
-            String targetAccountNumber) {
-        String url = switchUrl + "/api/v2/accounts/lookup?targetBankId=" + targetBankId + "&targetAccountNumber="
-                + targetAccountNumber;
-        log.info("🔍 Validando cuenta externa en Switch: {}", url);
+    /**
+     * Valida una cuenta en un banco externo a través del Switch (POST).
+     * Endpoint: POST /api/v2/switch/accounts/lookup
+     */
+    public com.nexus.ms_transacciones.dto.AccountLookupResponse validarCuenta(
+            com.nexus.ms_transacciones.dto.AccountLookupRequest request) {
+        String url = switchUrl + "/api/v2/switch/accounts/lookup";
+        log.info("🔍 Validando cuenta en Switch (POST): {}", url);
 
         try {
-            ResponseEntity<com.nexus.ms_transacciones.dto.AccountLookupResponse> response = restTemplate
-                    .getForEntity(url, com.nexus.ms_transacciones.dto.AccountLookupResponse.class);
+            // Usamos RestTemplate como en el snippet original (o WebClient si preferimos,
+            // pero user paso RestTemplate)
+            // Manteniendo consistencia con el resto de la clase que usa RestTemplate (ver
+            // enviarTransferencia).
+
+            // Nota: El snippet usa headers con API Key. Verificamos si es necesario.
+            // Si la clase ya tiene 'restTemplate' configurado puede que no necesite headers
+            // manuales,
+            // pero el snippet lo incluía explicitamente.
+
+            // Adapto a la lógica existente:
+            ResponseEntity<com.nexus.ms_transacciones.dto.AccountLookupResponse> response = restTemplate.postForEntity(
+                    url, request, com.nexus.ms_transacciones.dto.AccountLookupResponse.class);
 
             return response.getBody();
+
         } catch (org.springframework.web.client.HttpClientErrorException e) {
             log.error("❌ Error HTTP validando cuenta externa: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
-            // Si el switch devuelve 400/404, probablemente sea que la cuenta no existe o el
-            // banco es invalido
             return com.nexus.ms_transacciones.dto.AccountLookupResponse.builder()
                     .status("FAILED")
-                    .data(java.util.Map.of("message", "Error remoto: " + e.getResponseBodyAsString()))
+                    .data(java.util.Map.of("message", "Error validando cuenta: " + e.getResponseBodyAsString()))
                     .build();
         } catch (Exception e) {
             log.error("❌ Error general validando cuenta externa: {}", e.getMessage());
-            return com.nexus.ms_transacciones.dto.AccountLookupResponse.builder()
-                    .status("FAILED")
-                    .data(java.util.Map.of("message", "Error de comunicación con Switch"))
-                    .build();
+            throw new RuntimeException("Switch no disponible para validación: " + e.getMessage());
         }
     }
 }
