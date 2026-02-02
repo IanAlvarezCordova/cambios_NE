@@ -18,6 +18,7 @@ export interface MovimientoDTO {
   saldoNuevo: number;
   descripcion: string;
   transaccionId?: string;
+  instructionId?: string;
   referencia?: string;
 }
 

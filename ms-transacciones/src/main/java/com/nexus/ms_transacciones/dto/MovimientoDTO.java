@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class MovimientoDTO {
     private Integer transaccionId;
+    private String instructionId; // UUID instructionId
     private String referencia;
     private String rolTransaccion; // "DEBITO" o "CREDITO"
     private BigDecimal monto;

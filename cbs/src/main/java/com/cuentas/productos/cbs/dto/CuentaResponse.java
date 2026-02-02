@@ -18,6 +18,8 @@ public class CuentaResponse {
     private BigDecimal saldo;
     private LocalDate fechaApertura;
     private String estado;
+    private String clienteNombre;
 
-    public CuentaResponse() {}
+    public CuentaResponse() {
+    }
 }

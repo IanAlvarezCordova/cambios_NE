@@ -20,6 +20,9 @@ public class CuentaMapper {
         dto.setSaldo(cuenta.getSaldo());
         dto.setFechaApertura(cuenta.getFechaApertura());
         dto.setEstado(cuenta.getEstado());
+        if (cuenta.getCliente() != null) {
+            dto.setClienteNombre(cuenta.getCliente().getNombreCompleto());
+        }
         return dto;
     }
 }

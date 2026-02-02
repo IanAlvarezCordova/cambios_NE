@@ -139,7 +139,9 @@ const PaginaDetalleCuenta = () => {
                         <p className="font-medium text-gray-800 break-words">{mov.descripcion || (esCredito ? 'Depósito' : 'Retiro/Transferencia')}</p>
                         <div className="text-xs text-gray-500 flex flex-wrap gap-x-3 gap-y-1 mt-1">
                             <span>{fechaFormat} {horaFormat}</span>
-                            {mov.transaccionId && <span className="font-mono bg-gray-100 px-1 rounded text-gray-600">ID: {mov.transaccionId}</span>}
+                            <span>{fechaFormat} {horaFormat}</span>
+                            {mov.instructionId && <span className="font-mono bg-gray-100 px-1 rounded text-gray-600 truncate max-w-[150px]" title={mov.instructionId}>ID: {mov.instructionId}</span>}
+                            {!mov.instructionId && mov.transaccionId && <span className="font-mono bg-gray-100 px-1 rounded text-gray-600">TX: {mov.transaccionId}</span>}
                             {mov.referencia && <span className="font-mono bg-blue-50 px-1 rounded text-blue-600">Ref: {mov.referencia}</span>}
                         </div>
                     </div>

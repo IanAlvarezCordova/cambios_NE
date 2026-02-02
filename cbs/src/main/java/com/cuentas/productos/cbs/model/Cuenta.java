@@ -22,6 +22,11 @@ public class Cuenta {
     private Integer clienteId;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "clienteid", insertable = false, updatable = false)
+    @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
+    private Cliente cliente;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipocuentaid", nullable = true)
     @org.hibernate.annotations.NotFound(action = org.hibernate.annotations.NotFoundAction.IGNORE)
     private TipoCuenta tipoCuenta;

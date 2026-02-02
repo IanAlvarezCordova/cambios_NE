@@ -182,7 +182,19 @@ public class TransaccionServiceImpl implements TransaccionService {
 
     @Override
     public AccountLookupResponse validarCuentaExterna(String targetBankId, String targetAccountNumber) {
-        return switchClient.validarCuentaExterna(targetBankId, targetAccountNumber);
+        // CORRECCIÓN: Mapear nombres de bancos a códigos del Switch
+        String bankCode = targetBankId;
+        if ("ARCBANK".equalsIgnoreCase(targetBankId)) {
+            bankCode = "AR";
+        } else if ("BANTEC".equalsIgnoreCase(targetBankId)) {
+            bankCode = "BA";
+        } else if ("ECUSOL".equalsIgnoreCase(targetBankId) || "ECUSOL_BK".equalsIgnoreCase(targetBankId)) {
+            bankCode = "EC";
+        } else if ("NEXUS".equalsIgnoreCase(targetBankId) || "NEXUS_BK".equalsIgnoreCase(targetBankId)) {
+            bankCode = "NE";
+        }
+
+        return switchClient.validarCuentaExterna(bankCode, targetAccountNumber);
     }
 
     @Override
