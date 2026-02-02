@@ -3,9 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { bancaService } from '../../services/bancaService';
 import { useAuthStore } from '../../store/useAuthStore';
 import { MovimientoDTO, CuentaDTO } from '../../types';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency } from '../../utils/formatters';
 import { ArrowLeft, ArrowDownLeft, ArrowUpRight, Calendar, Download, Filter, Search } from 'lucide-react';
-import { Boton } from '../../components/ui/Boton';
+import { Boton } from '../../components/common/Boton';
+import { toast } from 'react-hot-toast';
 
 interface MovimientoAgrupado {
     semana: string;
@@ -184,20 +185,29 @@ const PaginaDetalleCuenta = () => {
 
     const confirmarDevolucion = async () => {
         if (!movimientoADevolver || !motivoDevolucion) return;
+
+        // Usar transaccionId o Referencia segun lo que tenga, idealmente InstructionID original
+        const id = movimientoADevolver.transaccionId || movimientoADevolver.referencia;
+
+        if (!id) {
+            toast.error("No se puede devolver esta transacción (Falta ID)");
+            return;
+        }
+
         setProcesandoDevolucion(true);
         try {
-            // Usar transaccionId o Referencia segun lo que tenga, idealmente InstructionID original
-            const id = movimientoADevolver.transaccionId || movimientoADevolver.referencia;
             await bancaService.solicitarDevolucion(id, motivoDevolucion);
-            import('react-hot-toast').then(t => t.toast.success("Devolución solicitada correctamente"));
+            toast.success("Devolución solicitada correctamente");
             setShowDevolucionModal(false);
         } catch (error: any) {
             console.error(error);
-            import('react-hot-toast').then(t => t.toast.error(error.message || "Error al solicitar devolución"));
+            toast.error(error.message || "Error al solicitar devolución");
         } finally {
             setProcesandoDevolucion(false);
         }
     };
+
+
 
     return (
         <div className="max-w-5xl mx-auto space-y-6 pb-12">
