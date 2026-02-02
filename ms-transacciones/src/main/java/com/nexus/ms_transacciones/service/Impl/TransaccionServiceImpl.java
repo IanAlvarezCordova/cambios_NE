@@ -160,9 +160,11 @@ public class TransaccionServiceImpl implements TransaccionService {
         CuentaDTO cuenta = cuentaClient.buscarPorNumero(accountId);
 
         if (cuenta != null && "ACTIVA".equalsIgnoreCase(cuenta.getEstado())) {
-            // Devolvemos SUCCESS con data
-            // Asumimos que clienteNombre viene en DTO o lo ponemos genérico si falta
-            String owner = cuenta.getClienteNombre() != null ? cuenta.getClienteNombre() : "CLIENTE NEXUS";
+            // FIX: Usar nombre real del cliente si está disponible
+            String owner = (cuenta.getClienteNombre() != null && !cuenta.getClienteNombre().isEmpty())
+                    ? cuenta.getClienteNombre()
+                    : "CLIENTE NEXUS (Nombre no disponible)";
+
             return AccountLookupResponse.builder()
                     .status("SUCCESS")
                     .data(java.util.Map.of(

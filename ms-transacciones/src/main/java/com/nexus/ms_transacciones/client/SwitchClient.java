@@ -124,10 +124,16 @@ public class SwitchClient {
                     .getForEntity(url, com.nexus.ms_transacciones.dto.AccountLookupResponse.class);
 
             return response.getBody();
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            log.error("❌ Error HTTP validando cuenta externa: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
+            // Si el switch devuelve 400/404, probablemente sea que la cuenta no existe o el
+            // banco es invalido
+            return com.nexus.ms_transacciones.dto.AccountLookupResponse.builder()
+                    .status("FAILED")
+                    .data(java.util.Map.of("message", "Error remoto: " + e.getResponseBodyAsString()))
+                    .build();
         } catch (Exception e) {
-            log.error("❌ Error validando cuenta externa: {}", e.getMessage());
-            // Retornamos un objeto indicando fallo en lugar de explotar, o lanzamos
-            // excepción según preferencia
+            log.error("❌ Error general validando cuenta externa: {}", e.getMessage());
             return com.nexus.ms_transacciones.dto.AccountLookupResponse.builder()
                     .status("FAILED")
                     .data(java.util.Map.of("message", "Error de comunicación con Switch"))

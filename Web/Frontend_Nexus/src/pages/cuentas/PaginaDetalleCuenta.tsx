@@ -70,11 +70,6 @@ const PaginaDetalleCuenta = () => {
     const [filtroTipo, setFiltroTipo] = useState<'TODOS' | 'INGRESOS' | 'EGRESOS'>('TODOS');
     const [filtroFecha, setFiltroFecha] = useState<'SIEMPRE' | 'SEMANA' | 'MES'>('SIEMPRE');
 
-    const [showDevolucionModal, setShowDevolucionModal] = useState(false);
-    const [movimientoADevolver, setMovimientoADevolver] = useState<MovimientoDTO | null>(null);
-    const [motivoDevolucion, setMotivoDevolucion] = useState('');
-    const [procesandoDevolucion, setProcesandoDevolucion] = useState(false);
-
     useEffect(() => {
         const cargarDatos = async () => {
             if (!numeroCuenta) return;
@@ -125,7 +120,7 @@ const PaginaDetalleCuenta = () => {
 
 
 
-    const MovimientoItem = ({ mov, onDevolver }: { mov: MovimientoDTO, onDevolver: (m: MovimientoDTO) => void }) => {
+    const MovimientoItem = ({ mov }: { mov: MovimientoDTO }) => {
         const esCredito = mov.tipo === 'C';
         const colorMonto = esCredito ? 'text-green-600' : 'text-red-600';
         const SignoIcon = esCredito ? ArrowDownLeft : ArrowUpRight;
@@ -151,14 +146,6 @@ const PaginaDetalleCuenta = () => {
                 </div>
 
                 <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                    {esCredito && (
-                        <button
-                            onClick={() => onDevolver(mov)}
-                            className="px-3 py-1 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 text-xs font-bold rounded-lg border border-gray-200 transition-colors"
-                        >
-                            Devolver
-                        </button>
-                    )}
                     <div className="text-right">
                         <p className={`font-bold ${colorMonto}`}>
                             {esCredito ? '+' : '-'}{formatCurrency(mov.monto)}
@@ -177,35 +164,7 @@ const PaginaDetalleCuenta = () => {
 
     const totalMovimientos = movimientosFiltrados.length;
 
-    const handleDevolver = (mov: MovimientoDTO) => {
-        setMovimientoADevolver(mov);
-        setMotivoDevolucion('');
-        setShowDevolucionModal(true);
-    };
 
-    const confirmarDevolucion = async () => {
-        if (!movimientoADevolver || !motivoDevolucion) return;
-
-        // Usar transaccionId o Referencia segun lo que tenga, idealmente InstructionID original
-        const id = movimientoADevolver.transaccionId || movimientoADevolver.referencia;
-
-        if (!id) {
-            toast.error("No se puede devolver esta transacción (Falta ID)");
-            return;
-        }
-
-        setProcesandoDevolucion(true);
-        try {
-            await bancaService.solicitarDevolucion(id, motivoDevolucion);
-            toast.success("Devolución solicitada correctamente");
-            setShowDevolucionModal(false);
-        } catch (error: any) {
-            console.error(error);
-            toast.error(error.message || "Error al solicitar devolución");
-        } finally {
-            setProcesandoDevolucion(false);
-        }
-    };
 
 
 
@@ -225,10 +184,10 @@ const PaginaDetalleCuenta = () => {
 
             {cuentaInfo && (
                 <div className={`p-8 rounded-2xl shadow-lg flex justify-between items-center text-white relative overflow-hidden
-            ${cuentaInfo.tipoCuentaId === 1
+             ${cuentaInfo.tipoCuentaId === 1
                         ? 'bg-gradient-to-r from-ecusol-primario to-blue-900' // Azul para Ahorros
                         : 'bg-gradient-to-r from-gray-800 to-black'} // Negro para Corriente
-        `}>
+         `}>
                     <div className="relative z-10">
                         <p className="text-white/80 text-sm font-medium mb-1 uppercase tracking-wider">
                             {cuentaInfo.tipoCuentaId === 1 ? 'Cuenta de Ahorros' : 'Cuenta Corriente'}
@@ -302,52 +261,14 @@ const PaginaDetalleCuenta = () => {
 
                             <div>
                                 {grupo.movimientos.map((mov, movIndex) => (
-                                    <MovimientoItem key={movIndex} mov={mov} onDevolver={handleDevolver} />
+                                    <MovimientoItem key={movIndex} mov={mov} />
                                 ))}
                             </div>
                         </div>
                     ))}
                 </div>
             )}
-
-            {showDevolucionModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-scale-in">
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">Devolver Transacción</h3>
-                        <p className="text-sm text-gray-500 mb-4">¿Estás seguro de devolver esta transferencia al origen?</p>
-
-                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-4">
-                            <p className="text-xs font-bold text-gray-500 uppercase">Monto a devolver</p>
-                            <p className="text-xl font-bold text-ecusol-primario">{formatCurrency(movimientoADevolver?.monto || 0)}</p>
-                            <p className="text-xs text-gray-400 mt-1">{movimientoADevolver?.descripcion}</p>
-                        </div>
-
-                        <div className="space-y-2 mb-6">
-                            <label className="text-sm font-bold text-gray-700">Motivo de la devolución</label>
-                            <textarea
-                                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-ecusol-primario outline-none"
-                                rows={3}
-                                placeholder="Escribe la razón (ej: Transferencia errónea)"
-                                value={motivoDevolucion}
-                                onChange={e => setMotivoDevolucion(e.target.value)}
-                            ></textarea>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button onClick={() => setShowDevolucionModal(false)} className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100">Cancelar</button>
-                            <button
-                                onClick={confirmarDevolucion}
-                                disabled={procesandoDevolucion || !motivoDevolucion}
-                                className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                            >
-                                {procesandoDevolucion ? 'Procesando...' : 'Confirmar Devolución'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
-
 export default PaginaDetalleCuenta;

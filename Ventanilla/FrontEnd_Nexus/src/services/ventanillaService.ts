@@ -58,5 +58,12 @@ export const ventanillaService = {
     return await apiClient<string>(`/cuenta/${numeroCuenta}`, {
       method: 'DELETE'
     });
+  },
+
+  solicitarDevolucion: async (instructionId: string, reasonCode: string, reasonDesc: string) => {
+    return await apiClient<string>(`/transacciones/devolucion`, {
+      method: 'POST',
+      body: JSON.stringify({ instructionId, reasonCode, reasonDesc })
+    });
   }
 };
